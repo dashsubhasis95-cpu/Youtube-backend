@@ -3,6 +3,7 @@ import { User} from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { uploadonCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken"
 
 const generateAccessAndRefreshTokens = async(userId) =>  {
     try{
@@ -38,7 +39,7 @@ const registerUser = asyncHandler( async (req, res) => {
     if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
         coverImageLocalPath = req.files.coverImage[0].path
     }
-    console.log(req.files)
+    // console.log(req.files)
 
     if(!avatarLocalPath){
         throw new ApiError(400, "Avatar image is required")
@@ -84,9 +85,10 @@ const registerUser = asyncHandler( async (req, res) => {
 })
 
 const loginUser = asyncHandler( async (req, res) => {
-    const { email, username, password} = req.body
+    const { email, username, password } = req.body
+    console.log(req.body)
 
-    if(!username || !email){
+    if(!username && !email){
         throw new ApiError(400, "Username or email are required")
     }
 
@@ -137,9 +139,66 @@ const logoutUser = asyncHandler(async(req, res) => {
     return res.status(200).clearCookie("accessToken", options).clearCookie("refreshToken", options).json(new ApiResponse(200, {}, "User logged out successfully"))
 
 })
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const incomingRefreshToken =req.cookies?.refreshToken || req.body?.refreshToken
+    if(!incomingRefreshToken){
+        throw new ApiError(401, "Invalid authorization")
+
+
+    }
+    let decodedToken;
+    try {
+         decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_SECRET_KEY)
+    } catch (error) {
+        throw new ApiError(401, "Invalid refresh token")
+        
+    }
+    const user = await User.findById(decodedToken?._id)
+    if(!user){
+        throw new ApiError(401, "Invalid user")
+
+    }
+    if(user.refreshToken !== incomingRefreshToken){
+        throw new ApiError(401, "Invalid refresh token")
+    }
+    const {accessToken , refreshToken} = await generateAccessAndRefreshTokens(user._id)
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res.status(200).cookie("accessToken", accessToken, options).cookie("refreshToken", refreshToken, options).json(new ApiResponse(200, {accessToken}, "Access token refreshed successfully"))
+})
+
+const changePassword = asyncHandler(async (req, res) => {
+    const { oldPassword , newPassword , confirmNewPassword} = req.body
+    if([oldPassword, newPassword, confirmNewPassword].some((field) => field?.trim() === "")){
+        throw new ApiError(400, "All fields are required")
+    }
+    if(newPassword !== confirmNewPassword){
+        throw new ApiError(400, "New password and confirm password do not match")
+    }
+    const user = await User.findById(req.user?._id)
+    if (!user){
+        throw new ApiError(404, "User not found")
+    }
+    const ispasswordValid = await user.isPasswordCorrect(oldPassword)
+    if(!ispasswordValid){
+        throw new ApiError(401, "Invalid old password")
+    }
+    user.password = newPassword
+
+    await user.save();
+    return res.status(200).json(new ApiResponse(200, {}, "Password changed successfully"))
+
+})
 export { 
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    refreshAccessToken,
+    changePassword,
 }
 
