@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { uploadonCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
+import { Subscription } from "../models/subscription.model.js";
 
 const generateAccessAndRefreshTokens = async(userId) =>  {
     try{
@@ -192,6 +193,54 @@ const changePassword = asyncHandler(async (req, res) => {
 
     await user.save();
     return res.status(200).json(new ApiResponse(200, {}, "Password changed successfully"))
+
+})
+
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+    const { username } = req.params
+    if(!username.trim()){
+        throw new ApiError(400, "Username is missing")
+    }
+    const channel = await User.aggregate([
+        {
+        $match: {
+            username: username?.toLowerCase()
+        }
+
+    },
+    {
+        $lookup: {
+            from: "subscriptions",
+            localfield: "_id",
+            foreignField: "channel",
+            as: "subscribers"
+
+        }
+
+    },
+    {
+        $lookup: { 
+            from: "subscriptions",
+            localfield: "_id",
+            foreignField: "subscriber",
+            as: "subscribedTo"
+
+        }
+    },
+    {
+        $addFields: {
+            subscribersCount: {
+                $size: "$subscribers"
+            },
+            subscribedToCount: {
+                $size: "$subscribedTo"
+            },
+            isSubscribed: {
+                $cond: {$in : [req.user?._id, "$subscribers.subscriber"] , then: true, else: false}
+            }
+        }
+
+    }])
 
 })
 export { 
