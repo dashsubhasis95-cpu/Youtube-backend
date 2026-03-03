@@ -19,6 +19,10 @@ router.route("/register").post(upload.fields([
 router.route("/login").post(loginUser)
 
 router.route("/logout").post(verifyJWT,logoutUser)
+router.route("/refresh-token").get(refreshAccessToken)
+router.route("/change-password").post(verifyJWT, changePassword)
+router.route("/c/:username").get(verifyJWT, getUserChannelProfile)
+router.route("/-history").get(verifyJWT, getUserWatchHistory)
 // router.route("/channel").post(getUserChannelProfile)
  
 
