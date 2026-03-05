@@ -49,3 +49,16 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 })
 
+const updateVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    const { title, description, thumbnail, videoUrl } = req.body
+    const video = await Video.findByIdAndUpdate(
+        videoId,
+        { title, description, thumbnail, videoUrl },
+        { new: true }
+    )
+    return res.status(200).json(
+        new ApiResponse(200, video, "Video updated successfully")
+    )
+
+})
