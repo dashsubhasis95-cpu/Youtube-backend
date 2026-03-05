@@ -1,3 +1,5 @@
+import { Video } from "../models/video.model"
+
 const getAllVideos = asyncHandler(async (req, res) => {
 
   const { page = 1, limit = 10, query, sortBy , sortType , userId } = req.query
@@ -19,7 +21,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
     .skip((page - 1) * limit)
     .limit(Number(limit))
 
-  res.status(200).json(
+  return res.status(200).json(
     new ApiResponse(200, videos, "Videos fetched successfully")
    )
 })
@@ -32,7 +34,18 @@ const publishAVideo = asyncHandler(async (req, res) => {
         { title, description, thumbnail, videoUrl, isPublished: true },
         { new: true }
     )
-    res.status(200).json(
+    return res.status(200).json(
         new ApiResponse(200, video, "Video published successfully")
     )
 })
+
+const getVideoById = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    const video = await Video.find(videoId)
+
+    return res.status(200).json(
+      new ApiResponse(200, video, "Video fetched successfully")
+    )
+
+})
+
