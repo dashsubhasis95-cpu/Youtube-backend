@@ -63,3 +63,30 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 })
 
+const deleteVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+
+    const video = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set: { isPublished: false }
+        },
+        { new: true }
+    )
+
+    return res.status(200).json(
+        new ApiResponse(200, video, "Video deleted successfully")
+    )
+})
+
+const togglePublishStatus = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    const video = await Video.findByIdAndUpdate(
+        videoId,
+        { $set: { isPublished: !video.isPublished } },
+        { new: true }
+    )
+    return res.status(200).json(
+        new ApiResponse(200, video, "Video publish status toggled successfully")
+    )
+})
