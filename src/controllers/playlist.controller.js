@@ -116,3 +116,38 @@ const getPlaylistById = asyncHandler(async (req, res) => {
         new ApiResponse(200, playlist[0], "Playlist fetched successfully")
     )
 })
+
+const addVideoToPlaylist = asyncHandler(async (req, res) => {
+
+    const { playlistId, videoId } = req.params
+
+    if (!mongoose.Types.ObjectId.isValid(playlistId) || !mongoose.Types.ObjectId.isValid(videoId)) {
+        throw new ApiError(400, "Invalid playlist id or video id")
+    }
+
+    const playlist = await Playlist.findById(playlistId)
+
+    if (!playlist) {
+        throw new ApiError(404, "Playlist not found")
+    }
+
+    // check ownership
+    if (playlist.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not allowed to modify this playlist")
+    }
+
+    const video = await Video.findById(videoId)
+
+    if (!video) {
+        throw new ApiError(404, "Video not found")
+    }
+
+    playlist.videos.addToSet(videoId)
+
+    await playlist.save()
+
+    return res.status(200).json(
+        new ApiResponse(200, playlist, "Video added to playlist successfully")
+    )
+
+})
