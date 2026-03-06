@@ -76,3 +76,43 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 
 
 })
+
+const getPlaylistById = asyncHandler(async (req, res) => {
+
+    const { playlistId } = req.params
+
+    if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+        throw new ApiError(400, "Invalid playlist id")
+    }
+
+    const playlist = await Playlist.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(playlistId)
+            }
+        },
+
+        {
+            $lookup: {
+                from: "videos",
+                localField: "videos",
+                foreignField: "_id",
+                as: "videos"
+            }
+        },
+
+        {
+            $addFields: {
+                totalVideos: { $size: "$videos" }
+            }
+        }
+    ])
+
+    if (!playlist.length) {
+        throw new ApiError(404, "Playlist not found")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, playlist[0], "Playlist fetched successfully")
+    )
+})
