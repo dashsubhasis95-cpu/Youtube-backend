@@ -134,3 +134,35 @@ const addComment = asyncHandler(async (req, res) => {
         )
     )
 })
+
+const deleteComment = asyncHandler(async (req, res) => {
+
+    const { commentId } = req.params
+
+    if (!mongoose.Types.ObjectId.isValid(commentId)) {
+        throw new ApiError(400, "Invalid comment id")
+    }
+
+    const comment = await Comment.findById(commentId)
+
+    if (!comment) {
+        throw new ApiError(404, "Comment not found")
+    }
+
+    // check ownership
+    if (comment.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not allowed to delete this comment")
+    }
+
+    comment.isDeleted = true
+    await comment.save()
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            comment,
+            "Comment deleted successfully"
+        )
+    )
+
+})
