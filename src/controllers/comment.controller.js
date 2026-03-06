@@ -166,3 +166,38 @@ const deleteComment = asyncHandler(async (req, res) => {
     )
 
 })
+
+const updateComment = asyncHandler(async (req, res) => {
+
+    const { commentId } = req.params
+    const { content } = req.body
+
+    if (!content || content.trim() === "") {
+        throw new ApiError(400, "Comment content is required")
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(commentId)) {
+        throw new ApiError(400, "Invalid comment id")
+    }
+
+    const comment = await Comment.findById(commentId)
+
+    if (!comment) {
+        throw new ApiError(404, "Comment not found")
+    }
+
+    // ownership check
+    if (comment.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not allowed to edit this comment")
+    }
+
+    comment.content = content.trim()
+    comment.isEdited = true
+
+    await comment.save()
+
+    return res.status(200).json(
+        new ApiResponse(200, comment, "Comment updated successfully")
+    )
+
+})
