@@ -96,12 +96,41 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
     ])
 
-    return res.status(200).json({
-        success: true,
-        page: Number(page),
-        limit: Number(limit),
-        totalComments: comments.length,
-        comments
+    return res.status(200).json(
+        new ApiResponse(200, comments, "Comments fetched successfully")
+    )
+
+})
+
+
+const addComment = asyncHandler(async (req, res) => {
+
+    const { videoId } = req.params
+    const { content, parentComment } = req.body
+
+    if (!content || content.trim() === "") {
+        throw new ApiError(400, "Comment content is required")
+    }
+
+    // check video exists
+    const video = await Video.findById(videoId)
+
+    if (!video) {
+        throw new ApiError(404, "Video not found")
+    }
+
+    const newComment = await Comment.create({
+        content: content.trim(),
+        video: videoId,
+        owner: req.user._id,
+        parentComment: parentComment || null
     })
 
+    return res.status(201).json(
+        new ApiResponse(
+            201,
+            newComment,
+            "Comment added successfully"
+        )
+    )
 })
