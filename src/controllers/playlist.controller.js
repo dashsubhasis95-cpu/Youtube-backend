@@ -186,23 +186,43 @@ const deletePlaylist = asyncHandler(async (req, res) => {
     )
 
 })
-
 const updatePlaylist = asyncHandler(async (req, res) => {
-    const {playlistId} = req.params
-    const {name, description} = req.body
-    
+
+    const { playlistId } = req.params
+    const { name, description } = req.body
+
     if (!mongoose.Types.ObjectId.isValid(playlistId)) {
         throw new ApiError(400, "Invalid playlist id")
     }
-    const playlist = await Playlist.findOneAndUpdate(
-        {_id: playlistId, owner: req.user._id},
-        {name, description},
-        {new: true}
 
+    if (!name || !description) {
+        throw new ApiError(400, "Name and description are required")
+    }
+
+    const playlist = await Playlist.findOneAndUpdate(
+        {
+            _id: playlistId,
+            owner: req.user._id
+        },
+        {
+            $set: {
+                name: name.trim(),
+                description: description.trim()
+            }
+        },
+        { new: true }
     )
 
+    if (!playlist) {
+        throw new ApiError(404, "Playlist not found or unauthorized")
+    }
+
     return res.status(200).json(
-        new ApiResponse(200, playlist, "Playlist Updated Successfully")
+        new ApiResponse(
+            200,
+            playlist,
+            "Playlist updated successfully"
+        )
     )
 })
 
