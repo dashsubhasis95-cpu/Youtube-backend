@@ -63,3 +63,32 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
         new ApiResponse(200, subscribers, "Subscribers fetched successfully")
     )
 })
+
+const getSubscribedChannels = asyncHandler(async (req, res) => {
+    const { subscriberId } = req.params
+    if (!mongoose.Types.ObjectId.isValid(subscriberId)) {
+        throw new ApiError(400, "Invalid subscriber id")
+    }
+    const channels = await Subscription.aggregate([
+        {
+            $match: {
+                subscriber: new mongoose.Types.ObjectId(subscriberId)
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "channel",
+                foreignField: "_id",
+                as: "channelInfo"
+            }
+        },
+        {
+            $unwind: "$channelInfo"
+        }
+    ])
+    return res.status(200).json(
+        new ApiResponse(200, channels, "Subscribed channels fetched successfully")
+    )
+
+})
