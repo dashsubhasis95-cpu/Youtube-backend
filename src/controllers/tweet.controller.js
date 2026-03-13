@@ -39,3 +39,30 @@ const getUserTweets = asyncHandler(async (req, res) => {
     )
 
 })
+
+
+
+const updateTweet = asyncHandler(async (req, res) => {
+    //TODO: update tweet
+    const { tweetId } = req.params
+    const { content } = req.body
+
+    if (!mongoose.Types.ObjectId.isValid(tweetId)) {
+        throw new ApiError(400, "Invalid tweet id")
+    }
+
+    const tweet = await Tweet.findById(tweetId)
+
+    if (!tweet) {
+        throw new ApiError(404, "Tweet not found")
+    }
+
+    const updatedTweet = await Tweet.findByIdAndUpdate(
+        tweetId,
+        { content },
+        { new: true }
+    )
+
+    return res.status(200).json(new ApiResponse(200, updatedTweet, "Tweet updated successfully"))
+
+})
