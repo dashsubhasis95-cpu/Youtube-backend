@@ -38,7 +38,7 @@ const getUserTweets = asyncHandler(async (req, res) => {
         new ApiResponse(200, tweets, "User tweets fetched successfully")
     )
 
-})
+}) 
 
 
 
